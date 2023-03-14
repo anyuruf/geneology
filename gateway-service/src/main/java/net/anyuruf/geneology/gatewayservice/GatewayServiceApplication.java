@@ -16,8 +16,7 @@ public class GatewayServiceApplication {
 	}
 
 	@Bean
-	RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
-		return builder.routes().route("family-service", r -> r.path("/members").uri("lb://family-service")).build();
+	public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+		return builder.routes().route("default-route", r -> r.path("/**").uri("lb://family-service")).build();
 	}
-
 }
