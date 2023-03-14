@@ -1,18 +1,14 @@
 package net.anyuruf.geneology.familyservice.controller;
 
-import java.util.UUID;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import net.anyuruf.geneology.familyservice.domain.Link;
 import net.anyuruf.geneology.familyservice.domain.MemberBasic;
+import net.anyuruf.geneology.familyservice.domain.MemberBasicInput;
+import net.anyuruf.geneology.familyservice.repository.LinkRepository;
 import net.anyuruf.geneology.familyservice.repository.MemberBasicRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,28 +16,38 @@ import reactor.core.publisher.Mono;
 @RestController
 public class FamilyServiceController {
 
-	private MemberBasicRepository memberRepository;
+	private final MemberBasicRepository memberRepository;
+	private final LinkRepository linkRepository;
 
-	public FamilyServiceController(MemberBasicRepository memberRepository) {
-		this.memberRepository = memberRepository;
+	public FamilyServiceController(MemberBasicRepository memRepo, LinkRepository linkRepo) {
+		this.memberRepository = memRepo;
+		this.linkRepository = linkRepo;
 	}
 
-	@PostMapping("/members")
-	@ResponseStatus(HttpStatus.CREATED)
-	public Mono<MemberBasic> addMember(@RequestBody MemberBasic member) {
-		return memberRepository.save(member);
+	@QueryMapping
+	public Flux<MemberBasic> getNodes() {
+		return this.memberRepository.findAll();
 	}
 
-	@GetMapping("/members")
-	public Flux<MemberBasic> getMembers() {
-		return memberRepository.findAll();
+	@QueryMapping
+	public Flux<Link> links() {
+		return this.linkRepository.findAll();
 	}
 
-	@DeleteMapping("/members/{id}")
-	public Mono<ResponseEntity<Void>> deleteMember(@PathVariable("id") UUID id) {
-		return memberRepository.findById(id).flatMap(
-				member -> memberRepository.delete(member).then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK))))
-				.defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+	@MutationMapping
+	public Mono<MemberBasic> addMember(@Argument MemberBasicInput memberBasicInput) {
+		MemberBasic memberBasic = new MemberBasic(null, memberBasicInput.firstName(), memberBasicInput.lastName(),
+				memberBasicInput.description(), memberBasicInput.gender(), memberBasicInput.dob());
+		return this.memberRepository.save(memberBasic);
+
+	}
+
+	@MutationMapping
+	public Mono<MemberBasic> editMember(@Argument MemberBasicInput memberBasicInput) {
+		MemberBasic memberBasic = new MemberBasic(memberBasicInput.id(), memberBasicInput.firstName(),
+				memberBasicInput.lastName(), memberBasicInput.description(), memberBasicInput.gender(),
+				memberBasicInput.dob());
+		return this.memberRepository.save(memberBasic);
 	}
 
 }
